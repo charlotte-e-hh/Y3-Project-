@@ -1,0 +1,62 @@
+//#include "thingProperties.h" // this will enable acces to arduino Cloud Cloud
+
+int inputPin=8; // plug into D8
+long long time_stamp[201]; //chosen because need 201 sample times to get 200 f data points 
+long long period[200]; // period and time should be the same data type 
+double f[201]; // f as an array of doubles (more d.p than a float)
+int count=0; // this is used to keep track of the place in arrays 
+
+//these are the starting conditions 
+void setup() {
+  pinMode(inputPin, INPUT); // sets D8 to an input that can be read in 
+  attachInterrupt(digitalPinToInterrupt(inputPin), ISR, FALLING); // attaches an interrupt to D8
+ // Serial.begin(9600); // starts the serial (this is needed for the data output in serial...and pobably some other stuff DO NOT REMOVE unless reasearched and VERY sure)
+ // initProperties() // DO NOT REMOVE you will break it Cloud
+ // ArduinoCloud.begin(ArduinoIoTPreferredConnection); // access to arduino cloud ...this will need to be uploaded using Agent Cloud
+ // setDebugMessageLevel(2); // for debugging online Cloud
+ // ArduinoCloud.printDebugInfo(); // prinb this via the web Cloud 
+}
+//this is the main loop
+void loop() {
+  //keeps polling if the array is full or not
+  if (count==200){
+    noInterrupts(); // stops the interrupts so this can be exectuted before continuing 
+// note that if possible should remove this to minimise the gaps in the data, could be done later in some external data processing code 
+    for (int i=0; i<201; i++){ // does NOT need to be a global variable 
+    period[i]= time_stamp[i+1]-time_stamp[i]; // finds the time period between the 2 closest times
+    f[i]= 1000000.00/period[i]; // uses frequency formula, because in micros 10^6 used 
+    Serial.print(f[i]  ); // prints in serial - not inc in the online uploads
+    Serial.print( "\t "); // this is a tab between data points so I dont actually go insane 
+        if (i==200){
+        Serial.print("\n \n"); // just put in a new line when the entire array jhas been printed so I dont cry 
+      }  
+    }
+    count=0; // resents the count to zero to overwrite the array
+    attachInterrupt(digitalPinToInterrupt(inputPin), ISR, FALLING); // reattaches the interrupt having disabled it earlier 
+  }
+}
+// the loop below is for testing if the cloud IoT works, will need to adapt the cloud to read in an array rather than a single value 
+
+/*void loop() {
+  //ArduinoCloud.update();
+   if (count==200){ 
+    noInterrupts(); // disable interrupt 
+    for (int i=0; i<201; i++){
+    period[i]= time_stamp[i+1]-time_stamp[i];
+    f[i]= 1000000.00/period[i];
+    f_sum=f_sum+f[i];  // get a sum of all f 
+    }
+    f_av=f_sum/200.00; // get an average 
+    ArduinoCloud.update(); // update the cloud value 
+    count=0;
+    attachInterrupt(digitalPinToInterrupt(inputPin), ISR, HIGH); 
+
+}
+*/
+
+// this is the interups ISR
+void ISR(){
+time_stamp[count]= micros();  // uses micros to time when an interrupt occurs 
+count++; // adds 1 to the count 
+}
+

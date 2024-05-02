@@ -222,7 +222,30 @@ period[count]= time_stamp[count+1]-time_stamp[count]; // finds the time period b
 float f_current=f[count];
   String(f_current).toCharArray(temp, lengthT + 1);  // Data uploaded to ThinkSpeak channel field 1
   strcat(jsonBuffer, temp); // Concatenate 'temp' buffer to json buffer
-  
+     
+  strcat(jsonBuffer,  "\",\"field2\":\""); // Concatenate '\"field2\":' to json buffer
+  // strcat(jsonBuffer,  ",\"field2\":\""); // Concatenate '\"field2\":' to json buffer
+  //strcat(jsonBuffer,  ",\"field2\":"); // Concatenate '\"field2\":' to json buffer
+  char timestamp[30];
+ 
+
+  //Serial. println(timestamp);
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", timeinfo);
+  char milliseconds[5];
+  sprintf(milliseconds, ".%03d", millis() % 1000); // Add milliseconds
+  strcat(timestamp, milliseconds); 
+  //Serial.println(timestamp);
+
+   lengthT = String(timeStr, number).length();
+
+//  Serial.println(lengthT);
+ // Serial.print(timestamp); 
+
+//String(timestamp).toCharArray(temp, sizeof(timestamp));  
+//Serial.print(temp); 
+  //String(timestamp).toCharArray(temp, lengthT + 1);   // Data uploaded to ThinkSpeak channel field 2
+  strcat(jsonBuffer, timestamp); // Concatenate 'temp' buffer to json buffer
+
   //strcat(jsonBuffer, "}"); // Concatenate '},' buffer to json buffer
   
   strcat(jsonBuffer, "},");

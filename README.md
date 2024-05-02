@@ -14,7 +14,8 @@ This contains the code used in the development of a frequnecy monitoring device:
 
 **Frequency_bulk_upload**- frequency is calculated and uploaded in bulk to thingspeak
 
+**MATLAB_unpacking code**- the code used to unpack timestamped data sent to thingspeak
 
-
+**Integrated code**- final integrated code combining, frequency detection, timestamping, OLED display, Bulk upload
 
 References to 

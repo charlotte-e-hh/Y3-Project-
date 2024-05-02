@@ -1,0 +1,227 @@
+Data_50= readtable('frequency_firmware_test_data.xlsx', 'Sheet', 'Sheet7');
+Data_52= readtable('frequency_firmware_test_data.xlsx', 'Sheet', 'Sheet8');
+Data_47= readtable('frequency_firmware_test_data.xlsx', 'Sheet', 'Sheet9');
+Data_505= readtable('frequency_firmware_test_data.xlsx', 'Sheet', 'Sheet10');
+Data_495= readtable('frequency_firmware_test_data.xlsx', 'Sheet', 'Sheet5');
+Data_49= readtable('frequency_firmware_test_data.xlsx', 'Sheet', 'Sheet3');
+Data_51= readtable('frequency_firmware_test_data.xlsx', 'Sheet', 'Sheet2');
+
+
+count_50=0
+count_52=0
+count_47=0
+count_505=0
+count_495=0
+count_49=0
+count_51=0
+
+i=1; 
+for i=1:600
+% Data_50.Error(i)= 100*(Data_50.round(i)-50)/50; 
+% Data_52.Error(i)= 100*(Data_52.round(i)-52)/52; 
+% Data_47.Error(i)= 100*(Data_47.round(i)-47)/47; 
+
+Data_50.Error(i)= Data_50.round(i)-50;
+Data_52.Error(i)= Data_52.round(i)-52;
+Data_47.Error(i)= Data_47.round(i)-47;
+Data_505.Error(i)= Data_505.round(i)-50.5;
+Data_495.Error(i)= Data_495.round(i)-49.5;
+Data_49.Error(i)= Data_49.round(i)-49.5;
+Data_51.Error(i)= Data_51.round(i)-51;
+
+
+
+Plot_50.packet(i)=Data_50.packet(i);
+Plot_52.packet(i)=Data_52.packet(i);
+Plot_47.packet(i)=Data_47.packet(i);
+Plot_505.packet(i)=Data_505.packet(i);
+Plot_495.packet(i)=Data_495.packet(i);
+Plot_51.packet(i)=Data_51.packet(i);
+Plot_49.packet(i)=Data_49.packet(i);
+
+if Data_50.Error(i)==0
+    Plot_50.Error(i)=nan; 
+else
+    Plot_50.Error(i)=Data_50.Error(i); 
+    count_50= count_50+1
+end 
+if Data_52.Error(i)==0
+    Plot_52.Error(i)=nan; 
+else
+    Plot_52.Error(i)=Data_52.Error(i); 
+    count_52= count_52+1
+end 
+if Data_47.Error(i)==0
+    Plot_47.Error(i)=nan; 
+else
+    Plot_47.Error(i)=Data_47.Error(i); 
+    count_47= count_47+1
+end 
+if Data_505.Error(i)==0
+    Plot_505.Error(i)=nan; 
+else
+    Plot_505.Error(i)=Data_505.Error(i); 
+    count_505= count_505+1
+end 
+if Data_47.Error(i)==0
+    Plot_47.Error(i)=nan; 
+else
+    Plot_495.Error(i)=Data_495.Error(i); 
+    count_495= count_495+1
+end 
+if Data_47.Error(i)==0
+    Plot_47.Error(i)=nan; 
+else
+    Plot_49.Error(i)=Data_49.Error(i); 
+    count_49= count_49+1
+end 
+if Data_47.Error(i)==0
+    Plot_47.Error(i)=nan; 
+else
+    Plot_51.Error(i)=Data_51.Error(i); 
+    count_51= count_51+1
+end 
+
+
+
+
+
+i=i+1; 
+end 
+
+percent_data_with_error_50= (count_50/600)*100
+percent_data_with_error_55= (count_52/600)*100
+percent_data_with_error_47= (count_47/600)*100
+percent_data_with_error_505= (count_505/600)*100
+percent_data_with_error_495= (count_495/600)*100
+percent_data_with_error_49= (count_49/600)*100
+percent_data_with_error_51= (count_51/600)*100
+
+% figure 
+% plot(Plot_50.packet, Plot_50.Error,'b', '*')
+% hold on 
+% scatter(Plot_52.packet, Plot_52.Error,'r ','*')
+% scatter(Plot_47.packet, Plot_47.Error,'g ','*')
+% title(' Error for frequency firmware data');
+% xlabel('Packet Number ');
+% ylabel('Percentage Error ');
+% yline(0);
+% grid on;
+% hold off
+
+
+
+
+% figure
+% scatter(Data_50.packet,Data_50.Error,  'b', '.')
+% hold on 
+% title(' Error for frequency firmware data 50 Hz');
+% xlabel('Packet Number ');
+% ylabel('Percentage Error ');
+% yline(0);
+% grid on;
+% hold off
+% 
+% figure
+% scatter(Data_52.packet,Data_52.Error,'r ','.')
+% hold on
+% title(' Error for frequency firmware data 52 Hz');
+% xlabel('Packet Number ');
+% ylabel('Percentage Error ');
+% yline(0);
+% grid on;
+% hold off
+% 
+% figure
+% scatter(Data_47.packet, Data_47.Error,'g ','.')
+% hold on 
+% title('Error for frequency firmware data 47 Hz');
+% xlabel('Packet Number ');
+% ylabel('Percentage Error ');
+% yline(0);
+% grid on;
+% hold off
+
+
+% 
+% figure
+% plot(Data_50.packet, Data_50.frequency,'b', '*')
+% hold on 
+% scatter(Data_52.packet,Data_52.frequency,'r ','*')
+% scatter(Data_47.packet, Data_47.frequency,'g ','*')
+% title(' Error for frequency firmware data');
+% xlabel('Packet Number ');
+% ylabel('Percentage Error ');
+% yline(0);
+% grid on;
+% hold off
+
+
+
+figure
+histogram(Data_50.frequency, 661, 'FaceColor', 'blue', 'FaceAlpha', 0.5);
+hold on 
+xlabel('Frequency');
+ylabel('Count');
+xline(50.005, 'b', '-'); 
+xline(49.995, 'b', '-'); 
+title('Calculated frequency for 50 Hz signal');
+hold off;
+% Set 2 - Red
+figure
+histogram(Data_52.frequency, 661, 'FaceColor', 'red', 'FaceAlpha', 0.5);
+hold on 
+xlabel('Frequency');
+ylabel('Count');
+xline(52.005, 'b', '-'); 
+xline(51.995, 'b', '-');
+title('Calculated frequency for 52 Hz signal');
+hold off;
+figure
+% Set 3 - Green
+histogram(Data_47.frequency, 661, 'FaceColor', 'green', 'FaceAlpha', 0.5);
+hold on 
+xlabel('Frequency');
+ylabel('Count');
+xline(47.005, 'b', '-'); 
+xline(46.995, 'b', '-');
+title('Calculated frequency for 47 Hz signal');
+hold off;
+figure
+histogram(Data_505.frequency, 661, 'FaceColor', 'blue', 'FaceAlpha', 0.5);
+hold on 
+xlabel('Frequency');
+ylabel('Count');
+xline(50.505, 'b', '-'); 
+xline(50.495, 'b', '-');
+title('Calculated frequency for 50.5 Hz signal');
+hold off;
+figure
+histogram(Data_495.frequency, 661, 'FaceColor', 'blue', 'FaceAlpha', 0.5);
+hold on 
+xlabel('Frequency');
+ylabel('Count');
+xline(49.505, 'b', '-'); 
+xline(49.495, 'b', '-');
+title('Calculated frequency for 49.5 Hz signal');
+hold off;
+figure
+histogram(Data_49.frequency, 661, 'FaceColor', 'blue', 'FaceAlpha', 0.5);
+hold on 
+xlabel('Frequency');
+ylabel('Count');
+xline(49.005, 'b', '-'); 
+xline(48.995, 'b', '-');
+title('Calculated frequency for 49 Hz signal');
+hold off;
+figure
+histogram(Data_51.frequency, 661, 'FaceColor', 'blue', 'FaceAlpha', 0.5);
+hold on 
+xlabel('Frequency');
+ylabel('Count');
+xline(51.005, 'b', '-'); 
+xline(50.995, 'b', '-');
+title('Calculated frequency for 51 Hz signal');
+hold off;
+% Labels and Title
+

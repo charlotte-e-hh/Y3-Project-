@@ -1,3 +1,5 @@
+// code adapted from the arduino libraties https://github.com/arduino-libraries/NTPClient accessed 02/05/2024
+
 #include <WiFi.h>
 #include "time.h"
 #include "esp_wpa2.h"

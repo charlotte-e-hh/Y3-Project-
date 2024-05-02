@@ -1,0 +1,282 @@
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include "ThingSpeak.h" // always include thingspeak header file after other header files and custom macros
+#include <WiFi.h>
+#include "time.h"
+#include "esp_wpa2.h"
+
+
+int number=40;
+int voltage=1;
+
+
+char jsonBuffer[4000] = "[";    // Initialize the jsonBuffer to hold data
+
+unsigned long myChannelNumber = 2373428;
+const char * myWriteAPIKey = "L8LR6MKS3I5V66NJ";
+
+const char* ssid= "iPhone (821)";
+const char* password= "x7r8vgexab07";
+WiFiClient client;              // Initialize WiFi client library
+
+char server[] = "api.thingspeak.com"; // ThingSpeak Server address
+
+
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 0;
+const int   daylightOffset_sec = 0;
+
+/* Collect data once every 1 second and post data to ThingSpeak channel once every 16 seconds */
+unsigned long lastConnectionTime = 0;               // Track the last connection time
+unsigned long previousUpdate = 0;                   // Track the last update time
+const unsigned long postingInterval = 16L * 1000L;  // Post data every 16 seconds
+const unsigned long updateInterval = 1L * 1000L;  // Update JSON once every 500ms
+
+
+//format for Json buffer code taken from MATHWORKS documentation https://uk.mathworks.com/help/thingspeak/continuously-collect-data-and-bulk-update-a-thingspeak-channel-using-an-arduino-mkr1000-board-or-an-esp8266-board.html acceseed 02/05/2024
+
+void setup() {
+  Serial.begin(9600);
+  
+  //pinMode(inputPin, INPUT); // sets D8 to an input that can be read in 
+ // attachInterrupt(digitalPinToInterrupt(inputPin), ISR, FALLING); // attaches an interrupt to D8 ()
+
+   WiFi.disconnect(true);
+// WiFi.begin(ssid, WPA2_AUTH_PEAP, identity, username, password); 
+  WiFi.begin(ssid, password);
+   Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("WiFi connected");
+   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+   delay(500);
+ //  WiFi.disconnect(true);
+
+ WiFi.mode(WIFI_STA);   
+  ThingSpeak.begin(client);  // Initialize ThingSpeak
+}
+
+void loop() {
+ // Serial.println("loop");
+
+//Serial.println(jsonBuffer);
+  struct tm timeinfo;
+  //Serial.println("time obtined");
+    
+     if(!getLocalTime(&timeinfo)){
+    Serial.println("Failed to obtain time");
+    return;
+     }
+ 
+ 
+  for (int i = 0; i < 10; i++) { 
+     delay(1000);
+   number++;
+  // Serial.println(number);
+  // Serial.println(number);
+ // voltage++;
+  if(number==60){
+    number=40;
+  }
+  //  unsigned long now = millis();  // Get the current time
+ // unsigned long deltaT = now - previousUpdate;  // Calculate deltaT
+ // previousUpdate = now; 
+  previousUpdate = millis();
+  // If update time has reached 16 seconds, then update the jsonBuffer
+ // if (millis() - previousUpdate >=  updateInterval) {
+    //previousUpdate = millis();
+    
+    updatesJson(jsonBuffer, &timeinfo);
+   // Serial.println("updated buffer with data");
+ 
+ /* size_t len = strlen(jsonBuffer);  // Returns length of jsonBuffer
+    jsonBuffer[len - 1] = ']';
+    httpRequest(jsonBuffer);  // Calls the 'httpRequest' subroutine
+  // drawOLED();   // Calls the 'drawOLED' subroutine
+  previousUpdate = millis(); // Update the last update time
+  */
+ // }
+  }
+ 
+
+  
+}
+
+void updatesJson(char* jsonBuffer, struct tm* timeinfo) {
+  // Format the jsonBuffer as noted above
+  strcat(jsonBuffer, "{\"created_at\":\"");
+
+  // Format the timestamp obtained from NTP server
+  char timeStr[25];
+  strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", timeinfo);
+
+  strcat(jsonBuffer, timeStr);
+
+  //Serial.println(timeStr);
+  //strcat(jsonBuffer, "\"");
+
+ // strcat(jsonBuffer, ",\"field1\":");  // Concatenate '\"field1\":' to json buffer
+   strcat(jsonBuffer, "\",\"field1\":\"");  // Concatenate '\"field1\":' to json buffer
+  //  strcat(jsonBuffer, "\",\"field1\":");  // Concatenate '\"field1\":' to json buffer
+
+  char temp[4];
+
+ // Serial.println(temp); 
+
+  size_t lengthT = strlen(timeStr); // Calculate the length of the time string
+  String(number).toCharArray(temp, lengthT + 1);  // Data uploaded to ThinkSpeak channel field 1
+  strcat(jsonBuffer, temp); // Concatenate 'temp' buffer to json buffer
+
+///length was here 
+//strcat(jsonBuffer, "\"");
+   // strcat(jsonBuffer, ",");  // Concatenate ', ' to json buffer
+
+   
+  strcat(jsonBuffer,  "\",\"field2\":\""); // Concatenate '\"field2\":' to json buffer
+  // strcat(jsonBuffer,  ",\"field2\":\""); // Concatenate '\"field2\":' to json buffer
+  //strcat(jsonBuffer,  ",\"field2\":"); // Concatenate '\"field2\":' to json buffer
+  char timestamp[30];
+ 
+
+  //Serial. println(timestamp);
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", timeinfo);
+  char milliseconds[5];
+  sprintf(milliseconds, ".%03d", millis() % 1000); // Add milliseconds
+  strcat(timestamp, milliseconds); 
+  //Serial.println(timestamp);
+
+   lengthT = String(timeStr, number).length();
+
+//  Serial.println(lengthT);
+ // Serial.print(timestamp); 
+
+//String(timestamp).toCharArray(temp, sizeof(timestamp));  
+//Serial.print(temp); 
+  //String(timestamp).toCharArray(temp, lengthT + 1);   // Data uploaded to ThinkSpeak channel field 2
+  strcat(jsonBuffer, timestamp); // Concatenate 'temp' buffer to json buffer
+
+  
+  
+  strcat(jsonBuffer, "\"");
+  strcat(jsonBuffer, "}"); // Concatenate '},' buffer to json buffer
+  
+  //strcat(jsonBuffer, "},"); // Concatenate '},' buffer to json buffer
+
+ // Serial.println(jsonBuffer);
+  // If posting interval time has reached 16 seconds, update the ThingSpeak channel with data
+ if (millis() - lastConnectionTime >=  postingInterval) {
+    size_t len = strlen(jsonBuffer);  // Returns length of jsonBuffer
+    jsonBuffer[len - 1] = ']';
+    httpRequest(jsonBuffer);  // Calls the 'httpRequest' subroutine
+  }
+  // drawOLED();   // Calls the 'drawOLED' subroutine
+ // previousUpdate = millis(); // Update the last update time
+  
+
+}
+/*
+// Updates the jsonBuffer with data
+void updatesJson(char* jsonBuffer, struct tm* timeinfo) {
+  // Format the jsonBuffer as noted above
+  strcat(jsonBuffer, "{\"created_at\":\"");
+
+  // Format the timestamp obtained from NTP server
+  char timeStr[25];
+  strftime(timeStr, sizeof(timeStr), "%Y-%m-%dT%H:%M:%S", timeinfo);
+
+  strcat(jsonBuffer, timeStr);
+  char temp[4];
+
+  size_t lengthT = String(timeStr).length();
+ // String(created_at).toCharArray(temp, lengthT + 1); // Copies deltaT string characters to the temp buffer.
+  strcat(jsonBuffer, temp); // Concatenate 'temp' buffer to json buffer
+  strcat(jsonBuffer, ",");  // Concatenate ', ' to json buffer
+  strcat(jsonBuffer, "\"field1\":");  // Concatenate '\"field1\":' to json buffer
+
+  lengthT = String(number).length(); // Returns length of IR_1.readObjectTempC() string
+  String(number).toCharArray(temp, lengthT + 1);  // Data uploaded to ThinkSpeak channel field 1
+
+  //strcat(jsonBuffer, temp); // Concatenate 'temp' buffer to json buffer
+  strcat(jsonBuffer, ",");  // Concatenate ', ' to json buffer
+ // strcat(jsonBuffer, "\"field2\":"); // Concatenate '\"field2\":' to json buffer
+
+//  String(voltage).toCharArray(temp, lengthT + 1);   // Data uploaded to ThinkSpeak channel field 2
+  //strcat(jsonBuffer, temp); // Concatenate 'temp' buffer to json buffer
+  strcat(jsonBuffer, "},"); // Concatenate '},' buffer to json buffer
+  // If posting interval time has reached 16 seconds, update the ThingSpeak channel with data
+  if (micros() - lastConnectionTime >=  postingInterval) {
+    size_t len = strlen(jsonBuffer);  // Returns length of jsonBuffer
+    jsonBuffer[len - 1] = ']';
+    httpRequest(jsonBuffer);  // Calls the 'httpRequest' subroutine
+  }
+ // drawOLED();   // Calls the 'drawOLED' subroutine
+  previousUpdate = micros(); // Update the last update time
+}*/
+
+// Updates the ThingSpeakchannel with data
+void httpRequest(char* jsonBuffer) {
+
+ // Serial.println(jsonBuffer);
+  // Format the data buffer as noted above
+  char data[1500] = "{\"write_api_key\":\"L8LR6MKS3I5V66NJ\",\"updates\":"; // TODO - replace CHANNEL-WRITEAPIKEY with your ThingSpeak channel write API key
+  strcat(data, jsonBuffer);
+  strcat(data, "}");
+  // Close any connection before sending a new request
+  client.stop();
+  String data_length = String(strlen(data) + 1); // Returns length of 'data' string
+  // POST data to ThingSpeak
+ // Serial.println(data);
+ // Serial.println("should send");
+  if (client.connect(server, 80)) {
+ // Serial.println("80");
+   // client.println("POST /channels/2373428/bulk_update.json HTTP/1.1"); // TODO - replace CHANNEL-ID with your ThingSpeak channel ID
+    client.println("POST /channels/2373428/bulk_update.json HTTP");
+//    Serial.println("post");
+    client.println("Host: api.thingspeak.com");
+ //   Serial.println("host");
+    client.println("User-Agent: mw.doc.bulk-update (Arduino ESP8266)");
+ //   Serial.println("user agent");
+    client.println("Connection: close");
+ //   Serial.println("close");
+    client.println("Content-Type: application/json");
+  //  Serial.println("type"); 
+    client.println("Content-Length: " + data_length);
+   // Serial.println("length"); 
+    client.println();
+   // Serial.println("full");
+    client.println(data);
+    Serial.println(data); 
+  // Serial.print("ssent");
+  }
+   else {
+    Serial.println("Failure: Failed to connect to ThingSpeak");
+  }
+  delay(250); //Wait to receive the response
+  client.parseFloat();
+  String resp = String(client.parseInt());
+  Serial.println("Response code:"+resp); // Print the response code. 202 indicates that the server has accepted the response
+
+
+//  else{
+  //  Serial.println("didnt send");
+//  }
+  jsonBuffer[0] = '[';             // Reinitialize the jsonBuffer for next batch of data
+  jsonBuffer[1] = '\0';
+  lastConnectionTime = millis();   // Update the last connection time
+}
+
+
+
+String Float2String(const float value) {  // Convert a float to string with two decimals
+  char temp[12];
+  String s;
+
+  dtostrf(value, 8, 2, temp);             // The dtostrf() function converts the double value
+  s = String(temp);                       // passed in val into an ASCII representation, stored under s
+  s.trim();
+  return s;
+}

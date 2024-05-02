@@ -1,0 +1,39 @@
+#include <WiFi.h>
+#include "time.h"
+#include "esp_wpa2.h"
+
+
+const char* ssid= "iPhone (821)";
+const char* password= "x7r8vgexab07";
+
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 0;
+const int   daylightOffset_sec = 0;
+
+
+void setup() {
+  Serial.begin(9600);
+  delay(1000);
+  WiFi.disconnect(true);
+// WiFi.begin(ssid, WPA2_AUTH_PEAP, identity, username, password); 
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("WiFi connected");
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+}
+
+void loop() {
+  struct tm timeinfo;
+  if(!getLocalTime(&timeinfo)){
+    Serial.println("Failed to obtain time");
+    return;
+  }
+  Serial.println(&timeinfo, "%d %B %Y %H:%M:%S");
+  delay(1000);
+}
+
+

@@ -1,0 +1,30 @@
+%read in csv file
+data= readtable("data_test_y3.csv");
+
+%
+timestamp_data = data{:, 8};  %timestamp is the even collums
+field1_data = data{:, 9}   ;   % field 1 is the frequency data
+
+% Remove the extra characters from the timestamp strings
+ clean_timestamp_data = regexprep(timestamp_data, ',"field1"', '');
+ clean_field1_data= regexprep(field1_data, '},{"created_at"', '');
+
+
+% Convert the timestamp strings to datetime objects
+time = datetime(clean_timestamp_data);%,'InputFormat', 'yyyy-MM-dd''THH:mm:ss');
+frequency= str2double(clean_field1_data);
+
+
+% plot the data
+plot(time, frequency, '-o', 'LineWidth', 1.5);
+title('Frequency vs. Time');
+xlabel('Time');
+ylabel('Frequency ');
+grid on;
+
+
+
+<created-at type="dateTime">2024-03-29T14:51:10Z</created-at>
+<entry-id type="integer">3</entry-id>
+<field1>41</field1>
+

@@ -1,0 +1,236 @@
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include "ThingSpeak.h" // always include thingspeak header file after other header files and custom macros
+#include <WiFi.h>
+#include "time.h"
+#include "esp_wpa2.h"
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);  
+int number=40;
+int voltage=1;
+
+//Adafruit_MLX90614 IR_1 = Adafruit_MLX90614(0x5A); // Initialise IR sensor address using Adafruit_MLX90614 library
+//const int LDR = A0;             // Pin for LDR or photodiode
+
+char jsonBuffer[4000] = "[";    // Initialize the jsonBuffer to hold data
+
+int inputPin=8; // plug into D8
+unsigned long  time_stamp[4000]; //chosen because need 201 sample times to get 200 f data points 
+unsigned long period[4000]; // period and time should be the same data type 
+float f[4000]; // f as an array of doubles (more d.p than a float)
+int count=0; // this is used to keep track of the place in arrays 
+
+
+
+unsigned long myChannelNumber = 2373428;
+const char * myWriteAPIKey = "L8LR6MKS3I5V66NJ";
+
+const char* ssid= "iPhone (821)";
+const char* password= "x7r8vgexab07";
+WiFiClient client;              // Initialize WiFi client library
+
+char server[] = "api.thingspeak.com"; // ThingSpeak Server address
+
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 0;
+const int   daylightOffset_sec = 0;
+
+/* Collect data once every 1 second and post data to ThingSpeak channel once every 16 seconds */
+unsigned long lastConnectionTime = 0;               // Track the last connection time
+unsigned long previousUpdate = 0;                   // Track the last update time
+const unsigned long postingInterval = 16L * 1000L;  // Post data every 16 seconds
+const unsigned long updateInterval = 1L * 1000L;  // Update JSON once every 500ms
+
+void setup() {
+  Serial.begin(9600);
+    display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+  display.clearDisplay();
+  display.setTextSize(1); // Draw 2X-scale text
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(10, 0);
+  display.println(F("OLED connected"));
+  display.setCursor(10, 14);
+  display.println(F("looking for Wifi"));
+ // display.setCursor(10, 25);
+ // display.println(F("14:40")); 
+  display.display();  
+  //pinMode(inputPin, INPUT); // sets D8 to an input that can be read in 
+ // attachInterrupt(digitalPinToInterrupt(inputPin), ISR, FALLING); // attaches an interrupt to D8 ()
+
+   WiFi.disconnect(true);
+// WiFi.begin(ssid, WPA2_AUTH_PEAP, identity, username, password); 
+  WiFi.begin(ssid, password);
+   Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("WiFi connected");
+   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+   delay(500);
+ //  WiFi.disconnect(true);
+
+ WiFi.mode(WIFI_STA);   
+  ThingSpeak.begin(client);  // Initialize ThingSpeak
+
+         struct tm timeinfo;
+    
+     if(!getLocalTime(&timeinfo)){
+    Serial.println("Failed to obtain time");
+    return;
+
+  Serial.println("WiFi connected");
+   display.clearDisplay();
+  display.setTextSize(1); // Draw 2X-scale text
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(10, 0);
+  display.println(F("WiFi Connected"));
+   display.display();  
+
+  time_stamp[0]=0;
+  time_stamp[1]=0;
+  pinMode(inputPin, INPUT); // sets D8 to an input that can be read in 
+  attachInterrupt(digitalPinToInterrupt(inputPin), ISR, FALLING); // attaches an interrupt to D8
+
+}
+
+void loop() {
+
+//Serial.println(jsonBuffer);
+  
+    if(count==780){
+//noInterrupts();
+ Serial.print(jsonBuffer);
+  // Format the data buffer as noted above
+  char data[1500] = "{\"write_api_key\":\"L8LR6MKS3I5V66NJ\",\"updates\":"; // TODO - replace CHANNEL-WRITEAPIKEY with your ThingSpeak channel write API key
+  strcat(data, jsonBuffer);
+  strcat(data, "}");
+  // Close any connection before sending a new request
+  client.stop();
+  String data_length = String(strlen(data) + 1); // Returns length of 'data' string
+  // POST data to ThingSpeak
+  Serial.println(data);
+  if (client.connect(server, 80)) {
+    client.println("POST /channels/2373428/bulk_update.json HTTP/1.1"); // TODO - replace CHANNEL-ID with your ThingSpeak channel ID
+    client.println("Host: api.thingspeak.com");
+    client.println("User-Agent: mw.doc.bulk-update (Arduino ESP8266)");
+    client.println("Connection: close");
+    client.println("Content-Type: application/json");
+    client.println("Content-Length: " + data_length);
+    client.println();
+    client.println(data);
+  }
+
+  display.clearDisplay();
+  display.setTextSize(1); // Draw 2X-scale text
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(10, 14);
+  display.println(&timeinfo, "%d %B %Y");
+  display.setCursor(10, 25);
+  display.println(&timeinfo, "%H:%M:%S");
+  display.display();  
+      Serial.print("-");
+
+    f_sum=0.00;
+  //Serial.print("calculating average");
+  for (int i=0; i<781; i++){ // does NOT need to be a global variable 
+    period[i]= time_stamp[i+1]-time_stamp[i]; // finds the time period between the 2 closest times
+   // Serial.print(period[i]);
+    f[i]= 1000000.00/period[i]; // uses frequency formula, because in micros 10^6 used 
+    f_sum=f_sum + f[i];
+    f_av=f_sum/781.00;   
+  }
+    //  f_av= average();
+    //  Serial.println(f_av);
+      count=0;
+      f_av_set=f_av;
+
+//display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+  
+
+ display.setCursor(10, 5);
+//display.println(F("50.00"));
+//display.println("Now we can fix your car");
+display.print(f_av_set);
+  display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+  display.clearDisplay();
+  display.setTextSize(1); // Draw 2X-scale text
+  display.setTextColor(SSD1306_WHITE);
+ display.setCursor(10, 5);
+//display.println(F("50.00"));
+//display.println("Now we can fix your car");
+display.print(f_av_set);
+Serial.print(f_av_set);
+  jsonBuffer[0] = '[';             // Reinitialize the jsonBuffer for next batch of data
+  jsonBuffer[1] = '\0';
+  time_stamp[0]=0;
+  period[0]=0;
+  f[0];
+  count=0; 
+  lastConnectionTime = millis();   // Update the last connection time
+    }
+
+
+
+  
+   // count=0; // resents the count to zero to overwrite the array
+    //attachInterrupt(digitalPinToInterrupt(inputPin), ISR, FALLING); // reattaches the interrupt having disabled it earlier 
+  }
+  
+
+
+String Float2String(const float value) {  // Convert a float to string with two decimals
+  char temp[12];
+  String s;
+
+  dtostrf(value, 8, 2, temp);             // The dtostrf() function converts the double value
+  s = String(temp);                       // passed in val into an ASCII representation, stored under s
+  s.trim();
+  return s;
+}
+
+
+// this is the interups ISR
+void ISR(){
+struct tm timeinfo;
+       if(!getLocalTime(&timeinfo)){
+    Serial.println("Failed to obtain time");
+    return;
+     }
+time_stamp[count]= micros();  // uses micros to time when an interrupt occurs 
+period[count]= time_stamp[count+1]-time_stamp[count]; // finds the time period between the 2 closest times
+    f[count]= 1000000.00/period[count]; // uses frequency formula, because in micros 10^6 used 
+  previousUpdate = millis();
+   strcat(jsonBuffer, "{\"created_at\":\"");
+
+  // Format the timestamp obtained from NTP server
+  char timeStr[25];
+  strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", &timeinfo);
+
+  strcat(jsonBuffer, timeStr);
+  
+  strcat(jsonBuffer, "\",\"field1\":");  // Concatenate '\"field1\":' to json buffer
+
+  char temp[4];
+
+  size_t lengthT = strlen(timeStr); // Calculate the length of the time string
+float f_current=f[count];
+  String(f_current).toCharArray(temp, lengthT + 1);  // Data uploaded to ThinkSpeak channel field 1
+  strcat(jsonBuffer, temp); // Concatenate 'temp' buffer to json buffer
+  
+  //strcat(jsonBuffer, "}"); // Concatenate '},' buffer to json buffer
+  
+  strcat(jsonBuffer, "},");
+    count++; // adds 1 to the count 
+    size_t len = strlen(jsonBuffer);  // Returns length of jsonBuffer
+    jsonBuffer[len - 1] = ']';
+    //httpRequest(jsonBuffer);  // Calls the 'httpRequest' subroutine
+  // drawOLED();   // Calls the 'drawOLED' subroutine
+  previousUpdate = millis(); // Update the last update time
+
+}

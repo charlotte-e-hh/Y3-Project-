@@ -1,0 +1,182 @@
+// OLED uses libraries from Arduino 
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include "ThingSpeak.h" // always include thingspeak header file after other header files and custom macros
+#include <WiFi.h>
+#include "time.h"
+#include "esp_wpa2.h"
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);  
+
+int keyIndex = 0;            // your network key Index number (needed only for WEP)
+WiFiClient  client;
+
+unsigned long myChannelNumber = 2373428;
+const char * myWriteAPIKey = "L8LR6MKS3I5V66NJ";
+
+int number = 0;
+int count=0;
+
+const char* ssid= "iPhone (821)";
+const char* password= "x7r8vgexab07";
+
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 0;
+const int   daylightOffset_sec = 0;
+
+int inputPin=8; // plug into D8
+
+long long time_stamp[201]; //chosen because need 201 sample times to get 200 f data points 
+long long period[200]; // period and time should be the same data type 
+double f[201]; // f as an array of doubles (more d.p than a float)
+ // this is used to keep track of the place in arrays 
+float f_sum=0.00;
+float f_av=0.00;
+float f_av_set=0.00; 
+  
+  
+  void setup() {
+    Serial.begin(9600);
+  display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+  display.clearDisplay();
+  display.setTextSize(1); // Draw 2X-scale text
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(10, 0);
+  display.println(F("OLED connected"));
+  display.setCursor(10, 14);
+  display.println(F("looking for Wifi"));
+ // display.setCursor(10, 25);
+ // display.println(F("14:40")); 
+  display.display();  
+  time_stamp[0]=0;
+  time_stamp[1]=0;
+
+  // attaches an interrupt to D8 ()
+
+   WiFi.disconnect(true);
+// WiFi.begin(ssid, WPA2_AUTH_PEAP, identity, username, password); 
+  WiFi.begin(ssid, password);
+   Serial.print("Connecting to WiFi");
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("WiFi connected");
+   display.clearDisplay();
+  display.setTextSize(1); // Draw 2X-scale text
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(10, 0);
+  display.println(F("WiFi Connected"));
+   display.display();  
+
+   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+   delay(500);
+
+         struct tm timeinfo;
+    
+     if(!getLocalTime(&timeinfo)){
+    Serial.println("Failed to obtain time");
+    return;
+     }
+ //  WiFi.disconnect(true);
+
+ WiFi.mode(WIFI_STA);   
+  ThingSpeak.begin(client);  // Initialize ThingSpeak
+  pinMode(inputPin, INPUT); // sets D8 to an input that can be read in 
+  attachInterrupt(digitalPinToInterrupt(inputPin), ISR, FALLING); // attaches an interrupt to D8
+  
+  
+  }
+ 
+
+  void loop(){
+    Serial.print(count);
+   // Serial.print("loop");
+    if(count==200){  
+    //  detachInterrupt(inputPin);
+
+    noInterrupts(); // stops the interrupts so this can be exectuted before continuing 
+// note that if possible should remove this to minimise the gaps in the data, could be done later in some external data processing code 
+  
+      struct tm timeinfo;
+    
+     if(!getLocalTime(&timeinfo)){
+    Serial.println("Failed to obtain time");
+    return;
+     }
+
+  //   Serial.println(&timeinfo, "%d %B %Y %H:%M:%S");
+  display.clearDisplay();
+  display.setTextSize(1); // Draw 2X-scale text
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(10, 14);
+  display.println(&timeinfo, "%d %B %Y");
+  display.setCursor(10, 25);
+  display.println(&timeinfo, "%H:%M:%S");
+  display.display();  
+      Serial.print("-");
+
+    f_sum=0.00;
+  //Serial.print("calculating average");
+  for (int i=0; i<199; i++){ // does NOT need to be a global variable 
+    period[i]= time_stamp[i+1]-time_stamp[i]; // finds the time period between the 2 closest times
+   // Serial.print(period[i]);
+    f[i]= 1000000.00/period[i]; // uses frequency formula, because in micros 10^6 used 
+    f_sum=f_sum + f[i];
+    f_av=f_sum/199.00;   
+  }
+    //  f_av= average();
+    //  Serial.println(f_av);
+      count=0;
+      f_av_set=f_av;
+
+//display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+  
+
+ display.setCursor(10, 5);
+//display.println(F("50.00"));
+//display.println("Now we can fix your car");
+display.print(f_av_set);
+  display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+  display.clearDisplay();
+  display.setTextSize(1); // Draw 2X-scale text
+  display.setTextColor(SSD1306_WHITE);
+ display.setCursor(10, 5);
+//display.println(F("50.00"));
+//display.println("Now we can fix your car");
+display.print(f_av_set);
+Serial.print(f_av_set);
+//Serial.print("\n");
+
+
+ 
+//Upload to thingspeak taken from MATHWORKS doumentation https://uk.mathworks.com/help/thingspeak/channel-data-import.html accessed 02/05/2024
+//Uploads f_av to thingspeak
+  int x = ThingSpeak.writeField(myChannelNumber, 1, f_av_set, myWriteAPIKey);
+  if(x == 200){
+    Serial.println("Channel update successful.");
+  }
+  else{
+    Serial.println("Problem updating channel. HTTP error code " + String(x));
+  }
+     // attachInterrupt(digitalPinToInterrupt(inputPin), ISR, FALLING);
+    }
+    }
+
+
+// this is the interups ISR
+void ISR(){
+ // Serial.print("ISR");
+//Serial.print("ISR");
+time_stamp[count]= micros();  // uses micros to time when an interrupt occurs 
+count++; // adds 1 to the count 
+//Serial.print("-");
+}
+
+

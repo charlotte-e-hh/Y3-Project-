@@ -1,0 +1,130 @@
+#include <Arduino.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/semphr.h>
+
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+
+
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);  
+
+
+TaskHandle_t task1Handle;
+TaskHandle_t task2Handle;
+
+portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+SemaphoreHandle_t frequencyMutex;
+
+volatile bool interruptFlag = false;
+volatile unsigned long timeStamp = 0;
+volatile unsigned long timeStampA = 0;
+volatile unsigned long period = 0;
+volatile double frequency = 0;
+
+void task1(void * parameter) {
+  while(1) {
+    if (xSemaphoreTake(frequencyMutex, portMAX_DELAY) == pdTRUE) {
+      double currentFrequency = frequency;
+      xSemaphoreGive(frequencyMutex);
+      //char(currentFrequency);
+      if (currentFrequency != 0) {
+      //  Serial.print("Frequency: ");
+      //  Serial.println(currentFrequency);
+      //  Serial.print("\n");
+
+display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+  display.clearDisplay();
+  display.setTextSize(2); // Draw 2X-scale text
+  display.setTextColor(SSD1306_WHITE);
+ display.setCursor(10, 0);
+  display.write(currentFrequency);
+ // display.println(F("\n"));
+  display.display();  
+      }
+    }
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+  }
+}
+
+void task2(void * parameter) {
+  while(1) {
+    if (interruptFlag) {
+      portENTER_CRITICAL_ISR(&mux);
+      if (timeStamp == 0) {
+        timeStamp = micros();
+      } else {
+        timeStampA = micros();
+        period = timeStampA - timeStamp;
+        timeStamp = timeStampA;
+        interruptFlag = false;
+        
+        if (period != 0) {
+          portENTER_CRITICAL(&mux);
+          frequency = 1000000.0 / period;
+          portEXIT_CRITICAL(&mux);
+        }
+      }
+      portEXIT_CRITICAL_ISR(&mux);
+    }
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
+}
+
+
+void handleInterrupt() {
+  interruptFlag = true;
+}
+
+void setup() {
+  Serial.begin(9600);
+
+  frequencyMutex = xSemaphoreCreateMutex();
+
+
+  attachInterrupt(digitalPinToInterrupt(8), handleInterrupt, FALLING);
+
+ /*display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+  display.clearDisplay();
+  display.setTextSize(1); // Draw 2X-scale text
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(10, 0);
+  display.println(F("50.00"));
+  display.setCursor(10, 14);
+  display.println(F("04/03/2024"));
+  display.setCursor(10, 25);
+  display.println(F("13:38")); 
+  display.display();  */
+
+
+  xTaskCreate(
+    task1,         
+    "Task1",      
+    1000,         
+    NULL,           
+    1,             
+    &task1Handle   
+  );
+
+
+  xTaskCreate(
+    task2,          
+    "Task2",        
+    1000,           
+    NULL,          
+    2,              
+    &task2Handle    
+  );
+}
+
+void loop() {
+
+}
+

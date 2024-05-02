@@ -1,0 +1,129 @@
+//OLED uses arduino libraries
+
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+
+
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);  
+
+
+#include <WiFi.h>
+#include "time.h"
+#include "esp_wpa2.h"
+
+/*const char* ssid     = "eduroam";
+const char* identity= "m80066ch@manchester.ac.uk";
+const char* username= "m80066ch@manchester.ac.uk";
+const char* password = "CharlotteHH03!";
+*/
+
+const char* ssid= "iPhone (821)";
+const char* password= "x7r8vgexab07";
+
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 0;
+const int   daylightOffset_sec = 0;
+
+int inputPin=8; // plug into D8
+long long time_stamp[201]; //chosen because need 201 sample times to get 200 f data points 
+long long period[200]; // period and time should be the same data type 
+double f[201]; // f as an array of doubles (more d.p than a float)
+int count=0; // this is used to keep track of the place in arrays 
+double f_sum=0.00;
+double f_av=0.00;
+  
+  
+  void setup() {
+    Serial.begin(9600);
+  display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+  display.clearDisplay();
+  display.setTextSize(1); // Draw 2X-scale text
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(10, 0);
+  display.println(F("50.00"));
+  display.setCursor(10, 14);
+  display.println(F("04/03/2024"));
+  display.setCursor(10, 25);
+  display.println(F("14:40")); 
+  display.display();  
+
+
+  pinMode(inputPin, INPUT); // sets D8 to an input that can be read in 
+  attachInterrupt(digitalPinToInterrupt(inputPin), ISR, FALLING); // attaches an interrupt to D8 ()
+
+   WiFi.disconnect(true);
+// WiFi.begin(ssid, WPA2_AUTH_PEAP, identity, username, password); 
+  WiFi.begin(ssid, password);
+   Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("WiFi connected");
+   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+   delay(500);
+ //  WiFi.disconnect(true);
+  }
+ 
+
+  void loop(){
+
+   // if(count==200){
+   //    noInterrupts();
+  /*for (int i=0; i<19; i++){ // does NOT need to be a global variable 
+    period[i]= time_stamp[i+1]-time_stamp[i]; // finds the time period between the 2 closest times
+    f[i]= 1000000.00/period[i]; // uses frequency formula, because in micros 10^6 used 
+    f_sum=f_sum + f[i];
+    f_av=f_sum/19.00;
+  }
+*/
+//f_av=50.00;
+
+ 
+display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+  display.clearDisplay();
+  display.setTextSize(1); // Draw 2X-scale text
+  display.setTextColor(SSD1306_WHITE);
+ display.setCursor(10, 0);
+ display.println(F("50.00"));
+
+ struct tm timeinfo;
+    
+     if(!getLocalTime(&timeinfo)){
+    Serial.println("Failed to obtain time");
+    return;
+     }
+
+     Serial.println(&timeinfo, "%d %B %Y %H:%M:%S");
+
+  display.setCursor(10, 14);
+  display.println(&timeinfo, "%d %B %Y");
+  display.setCursor(10, 25);
+  display.println(&timeinfo, "%H:%M:%S");
+  display.display();  
+  delay(1000);
+
+
+//  display.write(f_av);
+ // display.println(F("foundIt"));
+  //display.display();  
+
+  //attachInterrupt(digitalPinToInterrupt(inputPin), ISR, FALLING);
+ // count=0;
+  }
+  
+
+// this is the interups ISR
+void ISR(){
+time_stamp[count]= micros();  // uses micros to time when an interrupt occurs 
+count++; // adds 1 to the count 
+}
+
+

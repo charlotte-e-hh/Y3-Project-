@@ -1,4 +1,18 @@
-This contains the code used in the development of a frequnecy monitoring device:
+The **'Testing'** folder contains the raw results from the tests conducted 
+
+ **analysis code for accuracy** - MATLAB code used for data processing and creating figures to understand the data
+ 
+ **comparioson with literature circuit and device**- Excel data from the comparison between the circuit in [35] and my device
+ 
+ **device vs scope frequency test**- data from testing the integrated device against scope frequency monitoring 
+
+ **Filter testing folder**- contains data from filter testing both transformers (10VA and 0.35VA)
+
+ **frequency_firmwave folder**-contains data from a static frequency being tested on the micrcontroller only (the name of each file is the frequency that was tested)
+ 
+
+
+The'**Firmware'** folder contains the code used in the development of a frequnecy monitoring device:
 
 **Zero Corossing Detects**- prints the correct frequency out on serial 
 
@@ -18,4 +32,8 @@ This contains the code used in the development of a frequnecy monitoring device:
 
 **Integrated code**- final integrated code combining, frequency detection, timestamping, OLED display, Bulk upload
 
-References to 
+References in the code will be indicated where appropriate: 
+code  uses the Json Buffer format from mathwork documentation (makers of ThingSpeak) https://uk.mathworks.com/help/thingspeak/continuously-collect-data-and-bulk-update-a-thingspeak-channel-using-an-arduino-mkr1000-board-or-an-esp8266-board.html which was then adapted for my variables 
+code uses mathworks documentation for single upload to ThingSpeak https://uk.mathworks.com/help/thingspeak/write-data.html
+code uses Arduino Libraries for the OLED https://www.arduino.cc/reference/en/libraries/oled-ssd1306-sh1106/ which was then adapted for my varaibles 
+code uses DDD for NTP

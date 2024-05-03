@@ -6,7 +6,7 @@ The **'Testing'** folder contains the raw results from the tests conducted
  
  **device vs scope frequency test**- data from testing the integrated device against scope frequency monitoring 
 
- **Filter testing folder**- contains data from filter testing both transformers (10VA and 0.35VA)
+ **Filter testing folder**- contains data from filter testing both transformers (10VA and 0.35VA) and the simulink model used 
 
  **frequency_firmwave folder**-contains data from a static frequency being tested on the micrcontroller only (the name of each file is the frequency that was tested)
  

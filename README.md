@@ -33,7 +33,11 @@ The'**Firmware'** folder contains the code used in the development of a frequnec
 **Integrated code**- final integrated code combining, frequency detection, timestamping, OLED display, Bulk upload
 
 References in the code will be indicated where appropriate: 
+
 code  uses the Json Buffer format from mathwork documentation (makers of ThingSpeak) https://uk.mathworks.com/help/thingspeak/continuously-collect-data-and-bulk-update-a-thingspeak-channel-using-an-arduino-mkr1000-board-or-an-esp8266-board.html which was then adapted for my variables 
-code uses mathworks documentation for single upload to ThingSpeak https://uk.mathworks.com/help/thingspeak/write-data.html
-code uses Arduino Libraries for the OLED https://www.arduino.cc/reference/en/libraries/oled-ssd1306-sh1106/ which was then adapted for my varaibles 
-code uses DDD for NTP
+
+code uses mathworks documentation for single upload to ThingSpeak https://uk.mathworks.com/help/thingspeak/write-data.html accessed 02/05/2024
+
+code uses Arduino Libraries for the OLED https://www.arduino.cc/reference/en/libraries/oled-ssd1306-sh1106/ accessed 02/05/2024 which was then adapted for my varaibles 
+
+code adapted from the arduino libraties https://github.com/arduino-libraries/NTPClient accessed 02/05/2024 was used for NTP

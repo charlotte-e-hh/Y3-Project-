@@ -2,7 +2,7 @@ The **'Testing'** folder contains the raw results from the tests conducted
 
  **analysis code for accuracy** - MATLAB code used for data processing and creating figures to understand the data
  
- **comparioson with literature circuit and device**- Excel data from the comparison between the circuit in [35] and my device
+ **comparioson with literature circuit file**- conatins 2 folders of scope images 1 for literature and the other for my circuit and an Excel sheet with data from the comparison between the circuit in [35] and my device
  
  **device vs scope frequency test**- data from testing the integrated device against scope frequency monitoring 
 
